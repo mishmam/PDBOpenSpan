@@ -1,0 +1,8 @@
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\obj\x86\Debug\CommandPrompt.csprojResolveAssemblyReference.cache
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\obj\x86\Debug\CommandPrompt.MainForm.resources
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\obj\x86\Debug\CommandPrompt.Properties.Resources.resources
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\obj\x86\Debug\CommandPrompt.csproj.GenerateResource.Cache
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\bin\Debug\CommandPrompt.exe
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\bin\Debug\CommandPrompt.pdb
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\obj\x86\Debug\CommandPrompt.exe
+C:\Users\mishmam\Desktop\CommandPrompt\CommandPrompt\obj\x86\Debug\CommandPrompt.pdb
