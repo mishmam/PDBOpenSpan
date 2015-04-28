@@ -13,3 +13,11 @@ C:\Users\Mahdir\Desktop\OpenSpan\CommandPrompt\CommandPrompt\obj\x86\Debug\Comma
 C:\Users\Mahdir\Desktop\OpenSpan\CommandPrompt\CommandPrompt\obj\x86\Debug\PDB Extractor.csproj.GenerateResource.Cache
 C:\Users\Mahdir\Desktop\OpenSpan\CommandPrompt\CommandPrompt\bin\Debug\CommandPrompt.exe
 C:\Users\Mahdir\Desktop\OpenSpan\CommandPrompt\CommandPrompt\bin\Debug\CommandPrompt.pdb
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\CommandPrompt.exe
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\CommandPrompt.pdb
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\CommandPrompt.MainForm.resources
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\CommandPrompt.Properties.Resources.resources
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\PDB Extractor.csproj.GenerateResource.Cache
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\CommandPrompt.exe
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\CommandPrompt.pdb
+C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\CommandPrompt.exe.config

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Management;
 using System.Text;
+using System.IO;
 
 namespace CommandPrompt
 {
@@ -41,13 +42,14 @@ namespace CommandPrompt
 
         public int ExitCode { get; private set; }
 
-        public string StandardOutput
+        public StreamReader StandardOutput
         {
             get
             {
-                return _standardOutput.ToString();
+                return _process.StandardOutput;
             }
         }
+       
 
         public string StandardError
         {
@@ -109,7 +111,7 @@ namespace CommandPrompt
                     IsRunning = true;
                     ProcessId = _process.Id;
 
-                    _process.BeginOutputReadLine();
+                  //  _process.BeginOutputReadLine();
                     _process.BeginErrorReadLine();
                 }
             }
