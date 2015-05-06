@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows.Forms;
 using System.Text;
 using System.Diagnostics;
-using System.Object;
 using System.Collections;
 
 namespace CommandPrompt
@@ -45,11 +44,9 @@ namespace CommandPrompt
 
                     string param = filename;
                     int len = param.Length - 4;
-                    param = param.Substring(0, len);
+                    param = param.Substring(0, len);    
                     string tempname = string.Concat(param, ".txt");
                     param = " -p " + filename;
-                    textBox3.Text = param;
-                    textBox4.Text = filename;
                     CommandPrompt commandPrompt = new CommandPrompt("D:\\OpenSpan\\Dia2Dump.exe", param);
                     commandPrompt.Exited += Dia2Dump_Exited;
                     commandPrompt.OutputDataReceived += Dia2Dump_DataReceived;
@@ -58,10 +55,10 @@ namespace CommandPrompt
                     string output = commandPrompt.StandardOutput.ReadToEnd();
                     textBoxOutput.AppendText(output);
                     outputdata.Append(output);
-                    
+                    HookSearch();
                  //   searchtext(tempname);
                 }
-            
+                HookSearch();
         }
         public void HookSearch()
         {
@@ -141,7 +138,13 @@ namespace CommandPrompt
             string[] arrayWords = (string[])listWords.ToArray(typeof(string));
             IStringSearchAlgorithm searchAlg = new StringSearch();
             searchAlg.Keywords = arrayWords;
-            StringSearchResult[] results = searchAlg.FindAll(textBoxOutput.ToString());
+            StringSearchResult[] results = searchAlg.FindAll(outputdata.ToString());
+            string input = outputdata.ToString();
+            foreach (StringSearchResult r in results)
+            {
+                string temp = input.Substring(r.Index-20, 30);
+                textBox3.AppendText(r.Keyword + r.Index.ToString() + temp + " \n" );
+            }
         }
         
         private void buttonClose_Click(object sender, EventArgs e)
@@ -149,7 +152,7 @@ namespace CommandPrompt
             Close();
         }
 
-        void Dia2Dump_DataReceived(object sender, DataEventArgs e)
+        void Dia2Dump_DataReceived(object sender, DataEventArgs e) 
         {
             textBoxOutput.Invoke((Action)(() => textBoxOutput.AppendText(e.Data + Environment.NewLine)));
         }
