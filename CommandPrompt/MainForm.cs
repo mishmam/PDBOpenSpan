@@ -115,9 +115,9 @@ namespace CommandPrompt
             listWords.Add("NtUserSetWindowPos");
             listWords.Add("NtUserWindowFromPoint");
             listWords.Add(" LdrpLoadDll(Ldrp");
-            listWords.Add("NtMapViewOfSection");
+            listWords.Add("NtMapViewOfSection@40");
             listWords.Add("LoadLibraryExW");
-            listWords.Add("FreeLibrary");
+            listWords.Add("FreeLibrary@4");
             listWords.Add("SetConsoleActiveScreenBuffer");
             listWords.Add("CreateProcessInternalW");
             listWords.Add("BitBlt");
@@ -142,8 +142,9 @@ namespace CommandPrompt
             string input = outputdata.ToString();
             foreach (StringSearchResult r in results)
             {
-                string temp = input.Substring(r.Index-20, 30);
-                textBox3.AppendText(r.Keyword + r.Index.ToString() + temp + " \n" );
+                string temp = input.Substring(r.Index-66, 100);
+                string lineend = @"\n\n\n";
+                textBox3.AppendText(r.Keyword + r.Index.ToString() + temp + lineend );
             }
         }
         
