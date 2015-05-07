@@ -32,7 +32,28 @@ namespace CommandPrompt
             DirectoryInfo di = new DirectoryInfo(textBox2.Text);
             WalkDirectory(di);
         }
-       
+      /* public void WalkDirectoryDLL(System.IO.DirectoryInfo root)
+		{
+			string[] allFiles = System.IO.Directory.GetFiles(root.FullName, "*.dll", System.IO.SearchOption.AllDirectories);
+		   foreach (string filename in allFiles)
+		   {
+			   // operation for each DLL file
+			   string param = filename + " /s SRV*" + textBox2.Text + "*http://msdl.microsoft.com/download/symbols";
+            
+			   using(CommandPrompt commandPrompt = new CommandPrompt("symchk", param))
+			   {
+				   commandPrompt.Exited += commandPrompt_Exited;
+				   commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
+				   commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
+				   commandPrompt.Run();
+				   labelStatus.Text = "Command is running...";
+
+			   }
+             
+		   }
+
+		}
+		*/
         public void WalkDirectory(System.IO.DirectoryInfo root)
         {
 
@@ -40,14 +61,14 @@ namespace CommandPrompt
           
                 foreach (string filename in allFiles)
                 {
-                    // operation for each file
+                    // operation for each PDB file
 
                     string param = filename;
                     int len = param.Length - 4;
                     param = param.Substring(0, len);    
                     string tempname = string.Concat(param, ".txt");
                     param = " -p " + filename;
-                    CommandPrompt commandPrompt = new CommandPrompt("D:\\OpenSpan\\Dia2Dump.exe", param);
+                    CommandPrompt commandPrompt = new CommandPrompt("D:\\PDBProject\\Dia2Dump.exe", param);
                     commandPrompt.Exited += Dia2Dump_Exited;
                     commandPrompt.OutputDataReceived += Dia2Dump_DataReceived;
                     commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
@@ -140,6 +161,28 @@ namespace CommandPrompt
             searchAlg.Keywords = arrayWords;
             StringSearchResult[] results = searchAlg.FindAll(outputdata.ToString());
             string input = outputdata.ToString();
+
+			string[] lines = input.Split(new Char[] { '\n' });
+
+			foreach(string line in lines)
+			{
+				if(line.IndexOf("PublicSymbol:") == -1)
+					continue;
+				// PublicSymbol: [01234567][0123:01234567] DecoratedName(UndecoratedName)
+				int decoratedNameEnd = line.IndexOf('(');
+				if(decoratedNameEnd == -1)
+					decoratedNameEnd = line.Length;
+				decoratedNameEnd--;
+				int decoratedNameStart = line.IndexOf("] ") + 2;
+				int decoratedNameLength = decoratedNameEnd - decoratedNameStart + 1;
+				string decoratedSymbolName = line.Substring(decoratedNameStart, decoratedNameLength);
+
+				int rvaStart = line.IndexOf('[') + 1;
+				string rvaString = line.Substring(rvaStart, 8);
+				int rva = Convert.ToInt32(rvaString, 16);
+				
+			}
+
             foreach (StringSearchResult r in results)
             {
                 string temp = input.Substring(r.Index-66, 100);
@@ -604,6 +647,11 @@ namespace CommandPrompt
 
             #endregion
         }
+
+		private void textBox1_TextChanged(object sender, EventArgs e)
+		{
+
+		}
        
 
     }
