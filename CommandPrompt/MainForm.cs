@@ -58,11 +58,11 @@ namespace CommandPrompt
         {
 
             string[] allFiles = System.IO.Directory.GetFiles(root.FullName, "*.pdb", System.IO.SearchOption.AllDirectories);
-          
+            // logic to match to DLL 
                 foreach (string filename in allFiles)
                 {
                     // operation for each PDB file
-
+                    string pdbsig = readpdbsignature(filename);
                     string param = filename;
                     int len = param.Length - 4;
                     param = param.Substring(0, len);    
@@ -72,7 +72,7 @@ namespace CommandPrompt
                     commandPrompt.Exited += Dia2Dump_Exited;
                     commandPrompt.OutputDataReceived += Dia2Dump_DataReceived;
                     commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
-                    commandPrompt.BeginRun();
+                    commandPrompt.Run();
                     string output = commandPrompt.StandardOutput.ReadToEnd();
                     textBoxOutput.AppendText(output);
                     outputdata.Append(output);
@@ -186,11 +186,28 @@ namespace CommandPrompt
             foreach (StringSearchResult r in results)
             {
                 string temp = input.Substring(r.Index-66, 100);
+                int end2 = temp.IndexOf('\n');
                 string lineend = @"\n\n\n";
-                textBox3.AppendText(r.Keyword + r.Index.ToString() + temp + lineend );
+                textBox3.AppendText(r.Keyword + "   " + r.Index.ToString() + "   " + end2.ToString() + temp + lineend); 
             }
         }
         
+        public string readpdbsignature(string filename)
+        {
+            string param = " " + filename + " info";
+            CommandPrompt commandPrompt = new CommandPrompt("dbh", param);
+            commandPrompt.Exited += commandPrompt_Exited;
+            commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
+            commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
+            commandPrompt.Run();
+            string output = commandPrompt.StandardOutput.ReadToEnd();
+            int start = output.IndexOf("PdbSig70:") + 11;
+            int end = output.IndexOf("PdbAge");
+            int length = end - start;
+            string pdbsignature = output.Substring(start, length);
+            return pdbsignature;
+
+        }
         private void buttonClose_Click(object sender, EventArgs e)
         {
             Close();
