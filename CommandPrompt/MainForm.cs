@@ -14,29 +14,36 @@ namespace CommandPrompt
         {
             InitializeComponent();
         }
-        StringBuilder rawdata = new StringBuilder();
         StringBuilder outputdata = new StringBuilder();
+
         private void buttonRun_Click(object sender, EventArgs e)
         {
             textBoxOutput.Clear();
             string param = " /r " + textBox1.Text + " /s SRV*" + textBox2.Text + "*http://msdl.microsoft.com/download/symbols";
-            
-            using(CommandPrompt commandPrompt = new CommandPrompt("symchk", param))
-            {
-                    commandPrompt.Exited += commandPrompt_Exited;
-                    commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
-                    commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
-                    commandPrompt.Run();
-                    labelStatus.Text = "Command is running...";
-                      
-            }
-             
-            DirectoryInfo di = new DirectoryInfo(textBox2.Text);
-            WalkDirectory(di);
-            System.IO.File.WriteAllText(@"D:\output.txt", outputdata.ToString());
+
+            CommandPrompt commandPrompt = new CommandPrompt("symchk", param);
+            commandPrompt.Exited += OnSymChk_Exited;
+            commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
+            commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
+            commandPrompt.TimeOut = 1000000;
+            labelStatus.Text = "SymChk is running...";
+            commandPrompt.Run();
+
 
         }
-      
+        
+        void OnSymChk_Exited(object sender, ExitedEventArgs e)
+		{
+			labelStatus.Invoke((Action)(() => labelStatus.Text = "SymChk has finished executing."));
+
+			if(e.ExitCode == 0)
+			{
+				DirectoryInfo di = new DirectoryInfo(textBox2.Text);
+				WalkDirectory(di);
+                System.IO.File.WriteAllText(@"D:\output.txt", outputdata.ToString());
+
+			}
+		}
         public void WalkDirectory(System.IO.DirectoryInfo root)
         {
 
@@ -60,25 +67,40 @@ namespace CommandPrompt
                     commandPrompt.Exited += Dia2Dump_Exited;
                     commandPrompt.OutputDataReceived += Dia2Dump_DataReceived;
                     commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
+                    commandPrompt.TimeOut = 1000000;
+                    labelStatus.Invoke((Action)(() => labelStatus.Text = "Dia2Dump is running..."));
                     commandPrompt.Run();
-                    string output = commandPrompt.StandardOutput.ReadToEnd();
-                    textBoxOutput.AppendText(output);
-                    rawdata.Append(output);
-                    HookSearch();
-                    textBox3.Text = outputdata.ToString();
-                 //   searchtext(tempname);
+                    //string output = commandPrompt.StandardOutput.ReadToEnd();
+                    //textBoxOutput.AppendText(output);
+                    //rawdata.Append(output);
+                    //HookSearch();
+                    //textBox3.Text = outputdata.ToString();
                 }
-                HookSearch();
         }
-        public void HookSearch()
+        void Dia2Dump_DataReceived(object sender, DataEventArgs e)
         {
-            string input = rawdata.ToString();
+            textBoxOutput.Invoke((Action)(() => textBoxOutput.AppendText(e.Data + Environment.NewLine)));
+        }
+        void Dia2Dump_Exited(object sender, EventArgs e)
+        {
+            labelStatus.Invoke((Action)(() => labelStatus.Text = "Dia2Dump has finished executing."));
+            CommandPrompt o = sender as CommandPrompt;
+            if (o != null)
+            {
+                string output = o.StandardOutput;
+              //  textBoxOutput.AppendText(output);
+                HookSearch(output);
+
+            }
+        }
+        public void HookSearch(string input)
+        {
             string[] lines = input.Split(new Char[] { '\n' });
 
             foreach (string line in lines)
             {
-                if (filterfunction(line) == 1)
-                {
+               // if (filterfunction(line) == 1)
+                //{
                     if (line.IndexOf("PublicSymbol:") == -1)
                         continue;
                     // PublicSymbol: [01234567][0123:01234567] DecoratedName(UndecoratedName)
@@ -94,8 +116,9 @@ namespace CommandPrompt
                     string rvaString = line.Substring(rvaStart, 8);
                     int rva = Convert.ToInt32(rvaString, 16);
                     string linetoadd = decoratedSymbolName + "  RVA:" + rvaString;
-                    outputdata.AppendLine(linetoadd);
-                }
+                    outputdata.Append(linetoadd);
+                    outputdata.AppendLine(" ");
+                //}
                 
             }
             outputdata.AppendLine(" ");
@@ -106,12 +129,18 @@ namespace CommandPrompt
         {
             string param = " " + filename + " info";
             CommandPrompt commandPrompt = new CommandPrompt("dbh", param);
-            commandPrompt.Exited += commandPrompt_Exited;
-            commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
+           // commandPrompt.Exited += commandPrompt_Exited;
+         //   commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
             commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
+            commandPrompt.TimeOut = 1000000;
+
             commandPrompt.Run();
-            string output = commandPrompt.StandardOutput.ReadToEnd();
-            int start = output.IndexOf("PdbSig70") + 11;
+            commandPrompt.Wait();
+            string output = commandPrompt.StandardOutput;
+            int start = output.IndexOf("PdbSig70");
+            if (start == -1)
+                return "NotFound";
+            start = start + 11;
             int end = output.IndexOf("PdbAge");
             int length = end - start;
             string pdbsignature = output.Substring(start, length);
@@ -134,8 +163,6 @@ namespace CommandPrompt
                     version = myFileVersionInfo.ToString();
                     version = DLLWinversion(version);
                     outputdata.AppendLine(filename + "   " + version);
-                    
-                    
                 }
              }
             return version;
@@ -454,15 +481,7 @@ namespace CommandPrompt
             Close();
         }
 
-        void Dia2Dump_DataReceived(object sender, DataEventArgs e) 
-        {
-            textBoxOutput.Invoke((Action)(() => textBoxOutput.AppendText(e.Data + Environment.NewLine)));
-        }
-        void Dia2Dump_Exited(object sender, EventArgs e)
-        {
-            labelStatus.Invoke((Action)(() => labelStatus.Text = "Dia2Dump has finished executing."));
-
-        }
+        
         void commandPrompt_DataReceived(object sender, DataEventArgs e)
         {
             textBoxOutput.Invoke((Action)(() => textBoxOutput.AppendText(e.Data + Environment.NewLine)));

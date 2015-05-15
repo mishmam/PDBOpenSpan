@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management;
 using System.Text;
 using System.IO;
+using System.ComponentModel;
 
 namespace CommandPrompt
 {
@@ -18,44 +19,143 @@ namespace CommandPrompt
         }
     }
 
-    // Class that allows running commands and receiving output.
-    internal class CommandPrompt : IDisposable
+    public class ExitedEventArgs : EventArgs
     {
-        private Process _process;
+        public int ExitCode { get; private set; }
 
-        void IDisposable.Dispose()
-        { }
-  
-        private ProcessStartInfo _startInfo;
+        public ExitedEventArgs(int code)
+        {
+            ExitCode = code;
+        }
+    }
 
-        private StringBuilder _standardOutput;
+    // Class that allows running commands and receiving output.
+    public class CommandPrompt
+    {
+        private StringBuilder mStandardOutput = new StringBuilder();
+        private StringBuilder mStandardError = new StringBuilder();
+        private string mFileName;
+        private string mArguments;
+        private string mWorkingDirectory;
+        private int mTimeout = -1;
+        private bool mDisposed = false;
+        System.Threading.AutoResetEvent mExitedWaitHandle = new System.Threading.AutoResetEvent(false);
 
-        private StringBuilder _standardError;
+        #region Construction
 
-        public const int NoTimeOut = 0;
-        
-        public bool IsRunning { get; private set; }
+        public CommandPrompt(string fileName, string arguments = "", string workingDirectory = "")
+        {
+            mFileName = fileName;
+            mArguments = arguments;
+            mWorkingDirectory = workingDirectory;
+            TimeOut = -1;
+        }
 
-        public bool HasExited { get; private set; }
+        #endregion
+
+        public void Run()
+        {
+            BackgroundWorker backgroundWorker = new BackgroundWorker();
+
+            backgroundWorker.DoWork += new DoWorkEventHandler(
+            delegate(object o, DoWorkEventArgs args)
+            {
+                using (System.Threading.AutoResetEvent outputWaitHandle = new System.Threading.AutoResetEvent(false))
+                using (System.Threading.AutoResetEvent errorWaitHandle = new System.Threading.AutoResetEvent(false))
+                {
+                    using (Process process = new Process())
+                    {
+                        // Apparently putting EnableraisingEvents as true should be BEFORE setting StartInfo parameters!
+                        process.EnableRaisingEvents = true;
+
+                        process.StartInfo.FileName = mFileName;
+                        process.StartInfo.Arguments = mArguments;
+                        process.StartInfo.WorkingDirectory = mWorkingDirectory;
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.CreateNoWindow = true;
+                        process.StartInfo.RedirectStandardOutput = true;
+                        process.StartInfo.RedirectStandardError = true;
+                        // process.StartInfo.RedirectStandardInput = true;
+
+
+                        try
+                        {
+                            process.OutputDataReceived += (sender, e) =>
+                            {
+                                if (e.Data == null)
+                                {
+                                    outputWaitHandle.Set();
+                                }
+                                else
+                                {
+                                    mStandardOutput.AppendLine(e.Data);
+                                    OutputDataReceived(this, new DataEventArgs(e.Data));
+                                }
+                            };
+
+                            process.ErrorDataReceived += (sender, e) =>
+                            {
+                                if (e.Data == null)
+                                {
+                                    errorWaitHandle.Set();
+                                }
+                                else
+                                {
+                                    mStandardError.AppendLine(e.Data);
+                                    ErrorDataReceived(this, new DataEventArgs(e.Data));
+                                }
+                            };
+
+                            mExitedWaitHandle.Reset();
+                            process.Start();
+                            process.BeginOutputReadLine();
+                            process.BeginErrorReadLine();
+
+                            if (process.WaitForExit(TimeOut))
+                            {
+                                ExitCode = process.ExitCode;
+                                Exited(this, new ExitedEventArgs(ExitCode));
+                            }
+                            else
+                            {
+                                ExitCode = -1;
+                                Exited(this, new ExitedEventArgs(ExitCode));
+                            }
+
+                        }
+                        finally
+                        {
+                            outputWaitHandle.WaitOne(TimeOut);
+                            errorWaitHandle.WaitOne(TimeOut);
+                            mExitedWaitHandle.Set();
+                        }
+                    }
+                }
+            });
+
+            backgroundWorker.RunWorkerAsync();
+        }
 
         public int ProcessId { get; private set; }
 
         public int ExitCode { get; private set; }
 
-        public StreamReader StandardOutput
+        public int TimeOut { get; set; }
+
+        public string StandardOutput
         {
             get
             {
-                return _process.StandardOutput;
+                return mStandardOutput.ToString();
             }
         }
-       
+
 
         public string StandardError
         {
             get
             {
-                return _standardError.ToString();
+                return mStandardError.ToString();
             }
         }
 
@@ -63,121 +163,53 @@ namespace CommandPrompt
 
         public event EventHandler<DataEventArgs> ErrorDataReceived = (sender, args) => { };
 
-        public event EventHandler Exited = (sender, args) => { };
+        public event EventHandler<ExitedEventArgs> Exited = (sender, args) => { };
 
-
-        public CommandPrompt(string exe, string arguments = "", string workingDirectory = "")
+        public void Wait()
         {
-            _standardOutput = new StringBuilder();
-            _standardError = new StringBuilder();
-
-            _startInfo = new ProcessStartInfo()
-            {
-                FileName = exe,
-                Arguments = arguments,
-                WorkingDirectory = workingDirectory,
-                UseShellExecute = false,                // This is required to redirect stdin, stdout and stderr
-                CreateNoWindow = true,                  // Don't create a window
-                RedirectStandardOutput = true,          // Capture standard output
-                RedirectStandardError = true,           // Capture standard error
-                RedirectStandardInput = true,           // Enable sending commands to standard input
-            };
-
-            _process = new Process()
-            {
-                StartInfo = _startInfo,
-                EnableRaisingEvents = true,
-            };
-            _process.OutputDataReceived += _process_OutputDataReceived;
-            _process.ErrorDataReceived += _process_ErrorDataReceived;
-            _process.Exited += _process_Exited;
+            mExitedWaitHandle.WaitOne(TimeOut);
         }
 
-        public void Run()
-        {
-            if (!IsRunning && !HasExited)
-            {
-                BeginRun();
-                _process.WaitForExit(10000);
-}
-        }
+        //public void WriteToStandardInput(string command)
+        //{
+        //	if (IsRunning && !HasExited)
+        //	{
+        //		_process.StandardInput.Write(command);
+        //	}
+        //}
 
-        public void BeginRun()
-        {
-            if (!IsRunning && !HasExited)
-            {
-                if (_process.Start())
-                {
-                    IsRunning = true;
-                    ProcessId = _process.Id;
+        //public void Kill(bool killChildProcesses = false)
+        //{
+        //	if (killChildProcesses && ProcessId != 0)
+        //	{
+        //		KillChildProcesses(ProcessId);
+        //	}
+        //	else if (IsRunning && !HasExited)
+        //	{
+        //		_process.Kill();
+        //	}
+        //}
 
-                  //  _process.BeginOutputReadLine();
-                    _process.BeginErrorReadLine();
-                }
-            }
-        }
+        //private void KillChildProcesses(int parentPid)
+        //{
+        //	using (var searcher = new ManagementObjectSearcher("select ProcessId from Win32_Process where ParentProcessId=" + parentPid))
+        //	using (ManagementObjectCollection objCollection = searcher.Get())
+        //	{
+        //		foreach (ManagementObject obj in objCollection)
+        //		{
+        //			int pid = Convert.ToInt32(obj["ProcessID"]);
+        //			KillChildProcesses(pid);
+        //		}
+        //	}
 
-        public void WriteToStandardInput(string command)
-        {
-            if (IsRunning && !HasExited)
-            {
-                _process.StandardInput.Write(command);
-            }
-        }
+        //	try
+        //	{
+        //		Process.GetProcessById(parentPid).Kill();
+        //	}
+        //	catch (ArgumentException)
+        //	{
+        //	}
+        //}
 
-        public void Kill(bool killChildProcesses = false)
-        {
-            if (killChildProcesses && ProcessId != 0)
-            {
-                KillChildProcesses(ProcessId);
-            }
-            else if (IsRunning && !HasExited)
-            {
-                _process.Kill();
-            }
-        }
-
-        private void KillChildProcesses(int parentPid)
-        {
-            using (var searcher = new ManagementObjectSearcher("select ProcessId from Win32_Process where ParentProcessId=" + parentPid))
-            using (ManagementObjectCollection objCollection = searcher.Get())
-            {
-                foreach (ManagementObject obj in objCollection)
-                {
-                    int pid = Convert.ToInt32(obj["ProcessID"]);
-                    KillChildProcesses(pid);
-                }
-            }
-
-            try
-            {
-                Process.GetProcessById(parentPid).Kill();
-            }
-            catch (ArgumentException)
-            {
-            }
-        }
-
-        private void _process_OutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            _standardOutput.AppendLine(e.Data);
-
-            OutputDataReceived(this, new DataEventArgs(e.Data));
-        }
-
-        private void _process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            _standardError.AppendLine(e.Data);
-
-            ErrorDataReceived(this, new DataEventArgs(e.Data));
-        }
-
-        private void _process_Exited(object sender, EventArgs e)
-        {
-            HasExited = true;
-            IsRunning = false;
-            ExitCode = _process.ExitCode;
-            Exited(this, e);
-        }
     }
 }
