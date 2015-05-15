@@ -36,11 +36,11 @@ namespace CommandPrompt
 		{
 			labelStatus.Invoke((Action)(() => labelStatus.Text = "SymChk has finished executing."));
 
-			if(e.ExitCode == 0)
+			if(e.ExitCode == 1)
 			{
 				DirectoryInfo di = new DirectoryInfo(textBox2.Text);
 				WalkDirectory(di);
-                System.IO.File.WriteAllText(@"D:\output.txt", outputdata.ToString());
+
 
 			}
 		}
@@ -53,8 +53,14 @@ namespace CommandPrompt
                 {
                     // operation for each PDB file
                     string pdbsig = readpdbsignature(filename);
+
                     // function finds windows version from pdbsignature 
-                    string version = matchDLL(pdbsig);
+					string dllPath;
+					string dllVersion;
+					if(matchDLL(pdbsig, out dllPath, out dllVersion) == false)
+						continue;
+
+					outputdata.AppendLine(dllPath + "   " + dllVersion);
                     outputdata.Append("  " + filename + "  " + pdbsig);
                     outputdata.AppendLine(" ");
 
@@ -63,7 +69,7 @@ namespace CommandPrompt
                     param = param.Substring(0, len);    
                     string tempname = string.Concat(param, ".txt");
                     param = " -p " + filename;
-                    CommandPrompt commandPrompt = new CommandPrompt("Dia2Dump", param);
+                    CommandPrompt commandPrompt = new CommandPrompt("d:\\pdbproject\\Dia2Dump.exe", param);
                     commandPrompt.Exited += Dia2Dump_Exited;
                     commandPrompt.OutputDataReceived += Dia2Dump_DataReceived;
                     commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
@@ -90,7 +96,7 @@ namespace CommandPrompt
                 string output = o.StandardOutput;
               //  textBoxOutput.AppendText(output);
                 HookSearch(output);
-
+				System.IO.File.WriteAllText(@"D:\output.txt", outputdata.ToString());
             }
         }
         public void HookSearch(string input)
@@ -116,6 +122,7 @@ namespace CommandPrompt
                     string rvaString = line.Substring(rvaStart, 8);
                     int rva = Convert.ToInt32(rvaString, 16);
                     string linetoadd = decoratedSymbolName + "  RVA:" + rvaString;
+					textBox3.Invoke((Action)(() => textBox3.AppendText(linetoadd + Environment.NewLine)));
                     outputdata.Append(linetoadd);
                     outputdata.AppendLine(" ");
                 //}
@@ -142,16 +149,17 @@ namespace CommandPrompt
                 return "NotFound";
             start = start + 11;
             int end = output.IndexOf("PdbAge");
-            int length = end - start;
+            int length = end - start - 12;
             string pdbsignature = output.Substring(start, length);
             return pdbsignature;
 
         }
-        public string matchDLL(string pdbsig)
+        public bool matchDLL(string pdbsig, out string dllPath, out string version)
         {
+			dllPath = "Not Found";
             DirectoryInfo di = new DirectoryInfo(textBox1.Text);
             System.IO.DirectoryInfo root = di;
-            string version=null;
+            version=null;
             string[] allFiles = System.IO.Directory.GetFiles(root.FullName, "*.dll", System.IO.SearchOption.AllDirectories);
             foreach (string filename in allFiles)
             {
@@ -159,13 +167,16 @@ namespace CommandPrompt
                 string dllsig = readpdbsignature(filename);
                 if (pdbsig == dllsig)
                 {
+					dllPath = filename;
+
                     FileVersionInfo myFileVersionInfo = FileVersionInfo.GetVersionInfo(filename);
                     version = myFileVersionInfo.ToString();
                     version = DLLWinversion(version);
-                    outputdata.AppendLine(filename + "   " + version);
+
+					return true;
                 }
              }
-            return version;
+            return false;
         
         }
         public string DLLWinversion(string input)
