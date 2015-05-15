@@ -33,8 +33,10 @@ namespace CommandPrompt
              
             DirectoryInfo di = new DirectoryInfo(textBox2.Text);
             WalkDirectory(di);
+            System.IO.File.WriteAllText(@"D:\output.txt", outputdata.ToString());
+
         }
-   
+      
         public void WalkDirectory(System.IO.DirectoryInfo root)
         {
 
@@ -54,7 +56,7 @@ namespace CommandPrompt
                     param = param.Substring(0, len);    
                     string tempname = string.Concat(param, ".txt");
                     param = " -p " + filename;
-                    CommandPrompt commandPrompt = new CommandPrompt("D:\\PDBProject\\Dia2Dump.exe", param);
+                    CommandPrompt commandPrompt = new CommandPrompt("Dia2Dump", param);
                     commandPrompt.Exited += Dia2Dump_Exited;
                     commandPrompt.OutputDataReceived += Dia2Dump_DataReceived;
                     commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
@@ -63,6 +65,7 @@ namespace CommandPrompt
                     textBoxOutput.AppendText(output);
                     rawdata.Append(output);
                     HookSearch();
+                    textBox3.Text = outputdata.ToString();
                  //   searchtext(tempname);
                 }
                 HookSearch();
@@ -74,25 +77,29 @@ namespace CommandPrompt
 
             foreach (string line in lines)
             {
-                if (line.IndexOf("PublicSymbol:") == -1)
-                    continue;
-                // PublicSymbol: [01234567][0123:01234567] DecoratedName(UndecoratedName)
-                int decoratedNameEnd = line.IndexOf('(');
-                if (decoratedNameEnd == -1)
-                    decoratedNameEnd = line.Length;
-                decoratedNameEnd--;
-                int decoratedNameStart = line.IndexOf("] ") + 2;
-                int decoratedNameLength = decoratedNameEnd - decoratedNameStart + 1;
-                string decoratedSymbolName = line.Substring(decoratedNameStart, decoratedNameLength);
+                if (filterfunction(line) == 1)
+                {
+                    if (line.IndexOf("PublicSymbol:") == -1)
+                        continue;
+                    // PublicSymbol: [01234567][0123:01234567] DecoratedName(UndecoratedName)
+                    int decoratedNameEnd = line.IndexOf('(');
+                    if (decoratedNameEnd == -1)
+                        decoratedNameEnd = line.Length;
+                    decoratedNameEnd--;
+                    int decoratedNameStart = line.IndexOf("] ") + 2;
+                    int decoratedNameLength = decoratedNameEnd - decoratedNameStart + 1;
+                    string decoratedSymbolName = line.Substring(decoratedNameStart, decoratedNameLength);
 
-                int rvaStart = line.IndexOf('[') + 1;
-                string rvaString = line.Substring(rvaStart, 8);
-                int rva = Convert.ToInt32(rvaString, 16);
-                string linetoadd = decoratedSymbolName + "  RVA:" + rvaString;
-                outputdata.AppendLine(linetoadd);
-
+                    int rvaStart = line.IndexOf('[') + 1;
+                    string rvaString = line.Substring(rvaStart, 8);
+                    int rva = Convert.ToInt32(rvaString, 16);
+                    string linetoadd = decoratedSymbolName + "  RVA:" + rvaString;
+                    outputdata.AppendLine(linetoadd);
+                }
+                
             }
-
+            outputdata.AppendLine(" ");
+            outputdata.AppendLine(" ");
         }
         
         public string readpdbsignature(string filename)
@@ -147,7 +154,7 @@ namespace CommandPrompt
             string buildnumber = sub.Substring(delimeter + 3, 4);
             string revision = sub.Substring(delimeter + 8, 5);
             StringBuilder versionname = new StringBuilder(); 
-            versionname.Append(sub);
+            versionname.AppendLine(sub);
             if (majorversion == "6")
             {
                 if (minorversion == "3")
@@ -280,6 +287,168 @@ namespace CommandPrompt
 
          }
          */
+        public int filterfunction(string input)
+        {
+            int rtnvariable = 0;
+            if (input.Contains("AppendMenuA"))
+                rtnvariable = 1;
+            if (input.Contains("AppendMenuW"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserBeginPaint"))
+                rtnvariable = 1;
+            if (input.Contains("CheckMenuItem"))
+                rtnvariable = 1;
+            if (input.Contains("CheckMenuRadioItem"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserDeferWindowPos"))
+                rtnvariable = 1;
+            if (input.Contains("DrawTextExA"))
+                rtnvariable = 1;
+            if (input.Contains("DrawTextExW"))
+                rtnvariable = 1;
+            if (input.Contains("DrawTextA"))
+                rtnvariable = 1;
+            if (input.Contains("DrawTextW"))
+                rtnvariable = 1;
+            if (input.Contains("EnableMenuItem"))
+                rtnvariable = 1;
+             if (input.Contains("FillRect"))
+                rtnvariable = 1;
+             if (input.Contains("NtUserEndPaint"))
+                 rtnvariable = 1;
+             if (input.Contains("NtUserGetAncestor"))
+                rtnvariable = 1;
+             if (input.Contains("NtUserGetCursorInfo"))
+                rtnvariable = 1;
+             if (input.Contains("GetCursorPos"))
+                rtnvariable = 1;
+             if (input.Contains("NtUserGetDC"))
+                rtnvariable = 1;
+             if (input.Contains("NtUserGetDCEx"))
+                rtnvariable = 1;
+             if (input.Contains("NtUserGetForegroundWindow"))
+                rtnvariable = 1;
+            if (input.Contains("GetKeyState"))
+                rtnvariable = 1;
+            if (input.Contains("GetMessageA"))
+                rtnvariable = 1;
+            if (input.Contains("GetMessageW"))
+                rtnvariable = 1;
+            if (input.Contains("GetMessagePos"))
+                rtnvariable = 1;
+            if (input.Contains("GetMessageTime"))
+                rtnvariable = 1;
+            if (input.Contains("GetUpdateRect"))
+                rtnvariable = 1;
+            if (input.Contains("GetUpdateRgn"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserGetWindowDC"))
+                rtnvariable = 1;
+            if (input.Contains("GetWindowLongA"))
+                rtnvariable = 1;
+            if (input.Contains("GetWindowLongPtrA"))
+                rtnvariable = 1;
+            if (input.Contains("GetWindowLongPtrW"))
+                rtnvariable = 1;
+            if (input.Contains("GetWindowLongW"))
+                rtnvariable = 1;
+            if (input.Contains("GetWindowRect"))
+                rtnvariable = 1;
+            if (input.Contains("InsertMenuItemA"))
+                rtnvariable = 1;
+            if (input.Contains("InsertMenuItemW"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserInvalidateRgn"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserInvalidateRect"))
+                rtnvariable = 1;
+            if (input.Contains("IsIconic"))
+                rtnvariable = 1;
+            if (input.Contains("IsWindowVisible"))
+                rtnvariable = 1;
+            if (input.Contains("PeekMessageA"))
+                rtnvariable = 1;
+            if (input.Contains("PeekMessageW"))
+                rtnvariable = 1;
+            if (input.Contains("ModifyMenuA"))
+                rtnvariable = 1;
+            if (input.Contains("ModifyMenuW"))
+                rtnvariable = 1;
+            if (input.Contains("SetForegroundWindow"))
+                rtnvariable = 1;
+            if (input.Contains("SetMenu"))
+                rtnvariable = 1;
+            if (input.Contains("SetMenuItemInfoA"))
+                rtnvariable = 1;
+            if (input.Contains("SetMenuItemInfoW"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserSetParent"))
+                rtnvariable = 1;
+            if (input.Contains("SetWindowLongA"))
+                rtnvariable = 1;
+            if (input.Contains("SetWindowLongPtrA"))
+                rtnvariable = 1;
+            if (input.Contains("SetWindowLongPtrW"))
+                rtnvariable = 1;
+            if (input.Contains("SetWindowLongW"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserSetWindowPlacement"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserSetWindowPos"))
+                rtnvariable = 1;
+            if (input.Contains("VerNtUserCreateWindowEx"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserTrackPopupMenuEx"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserSetWindowPos"))
+                rtnvariable = 1;
+            if (input.Contains("NtUserWindowFromPoint"))
+                rtnvariable = 1;
+            if (input.Contains(" LdrpLoadDll(Ldrp"))
+                rtnvariable = 1;
+            if (input.Contains("NtMapViewOfSection"))
+                rtnvariable = 1;
+            if (input.Contains("LoadLibraryExW"))
+                rtnvariable = 1;
+            if (input.Contains("FreeLibrary"))
+                rtnvariable = 1;
+            if (input.Contains("SetConsoleActiveScreenBuffer"))
+                rtnvariable = 1;
+            if (input.Contains("CreateProcessInternalW"))
+                rtnvariable = 1;
+            if (input.Contains("BitBlt"))
+                rtnvariable = 1;
+            if (input.Contains("CreateCompatibleDC"))
+                rtnvariable = 1;
+            if (input.Contains("CreateDCA"))
+                rtnvariable = 1;
+            if (input.Contains("CreateDCW"))
+                rtnvariable = 1;
+            if (input.Contains("CreateFontIndirectW"))
+                rtnvariable = 1;
+            if (input.Contains("CreateFontW"))
+                rtnvariable = 1;
+            if (input.Contains("DeleteDC"))
+                rtnvariable = 1;
+            if (input.Contains("ExtTextOutA"))
+                rtnvariable = 1;
+            if (input.Contains("FillRgn"))
+                rtnvariable = 1;
+            if (input.Contains("GetClipBox"))
+                rtnvariable = 1;
+            if (input.Contains("PaintRgn"))
+                rtnvariable = 1;            
+            if (input.Contains("PolyTextOutA"))
+                rtnvariable = 1;
+            if (input.Contains("PolyTextOutW"))
+                rtnvariable = 1;
+            if (input.Contains("TextOutA"))
+                rtnvariable = 1;
+            if (input.Contains("TextOutW"))
+                rtnvariable = 1;
+            return rtnvariable;
+        }
+
         private void buttonClose_Click(object sender, EventArgs e)
         {
             Close();

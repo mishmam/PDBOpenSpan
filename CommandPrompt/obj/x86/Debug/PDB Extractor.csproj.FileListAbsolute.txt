@@ -21,6 +21,5 @@ C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\PDB Ext
 C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\CommandPrompt.exe
 C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\CommandPrompt.pdb
 C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\CommandPrompt.exe.config
-C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\obj\x86\Debug\PDB Extractor.csprojResolveAssemblyReference.cache
 C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\System.Data.SQLite.dll
 C:\Users\Mahdir\Desktop\OpenSpan\PDBOpenSpan\CommandPrompt\bin\Debug\System.Data.SQLite.pdb
