@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Forms;
 using System.Text;
 using System.Diagnostics;
+using System.Reflection;
 using System.Collections;
 
 namespace CommandPrompt
@@ -13,6 +14,7 @@ namespace CommandPrompt
         {
             InitializeComponent();
         }
+        StringBuilder rawdata = new StringBuilder();
         StringBuilder outputdata = new StringBuilder();
         private void buttonRun_Click(object sender, EventArgs e)
         {
@@ -32,37 +34,21 @@ namespace CommandPrompt
             DirectoryInfo di = new DirectoryInfo(textBox2.Text);
             WalkDirectory(di);
         }
-      /* public void WalkDirectoryDLL(System.IO.DirectoryInfo root)
-		{
-			string[] allFiles = System.IO.Directory.GetFiles(root.FullName, "*.dll", System.IO.SearchOption.AllDirectories);
-		   foreach (string filename in allFiles)
-		   {
-			   // operation for each DLL file
-			   string param = filename + " /s SRV*" + textBox2.Text + "*http://msdl.microsoft.com/download/symbols";
-            
-			   using(CommandPrompt commandPrompt = new CommandPrompt("symchk", param))
-			   {
-				   commandPrompt.Exited += commandPrompt_Exited;
-				   commandPrompt.OutputDataReceived += commandPrompt_DataReceived;
-				   commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
-				   commandPrompt.Run();
-				   labelStatus.Text = "Command is running...";
-
-			   }
-             
-		   }
-
-		}
-		*/
+   
         public void WalkDirectory(System.IO.DirectoryInfo root)
         {
 
             string[] allFiles = System.IO.Directory.GetFiles(root.FullName, "*.pdb", System.IO.SearchOption.AllDirectories);
-            // logic to match to DLL 
+            
                 foreach (string filename in allFiles)
                 {
                     // operation for each PDB file
                     string pdbsig = readpdbsignature(filename);
+                    // function finds windows version from pdbsignature 
+                    string version = matchDLL(pdbsig);
+                    outputdata.Append("  " + filename + "  " + pdbsig);
+                    outputdata.AppendLine(" ");
+
                     string param = filename;
                     int len = param.Length - 4;
                     param = param.Substring(0, len);    
@@ -75,7 +61,7 @@ namespace CommandPrompt
                     commandPrompt.Run();
                     string output = commandPrompt.StandardOutput.ReadToEnd();
                     textBoxOutput.AppendText(output);
-                    outputdata.Append(output);
+                    rawdata.Append(output);
                     HookSearch();
                  //   searchtext(tempname);
                 }
@@ -83,113 +69,30 @@ namespace CommandPrompt
         }
         public void HookSearch()
         {
-            ArrayList listWords = new ArrayList();
-            listWords.Add("AppendMenuA");
-            listWords.Add("AppendMenuW");
-            listWords.Add("NtUserBeginPaint");
-            listWords.Add("CheckMenuItem");
-            listWords.Add("CheckMenuRadioItem");
-            listWords.Add("DrawTextA");
-            listWords.Add("DrawTextExA");
-            listWords.Add("DrawTextExW");
-            listWords.Add("EnableMenuItem");
-            listWords.Add("FillRect");
-            listWords.Add("EnableMenuItem");
-            listWords.Add("NtUserGetAncestor");
-            listWords.Add("NtUserGetCursorInfo");
-            listWords.Add("GetCursorPos");
-            listWords.Add("NtUserGetDC");
-            listWords.Add("NtUserGetDCEx");
-            listWords.Add("NtUserGetForegroundWindow");
-            listWords.Add("GetKeyState");
-            listWords.Add("GetMessageA");
-            listWords.Add("GetMessagePos");
-            listWords.Add("GetMessageTime");
-            listWords.Add("GetMessageW");
-            listWords.Add("GetUpdateRect");
-            listWords.Add("GetUpdateRgn");
-            listWords.Add("NtUserGetWindowDC");
-            listWords.Add("GetWindowLongA");
-            listWords.Add("GetWindowLongPtrA");
-            listWords.Add("GetWindowLongPtrW");
-            listWords.Add("GetWindowLongW");
-            listWords.Add("GetWindowRect");
-            listWords.Add("InsertMenuItemA");
-            listWords.Add("InsertMenuItemW");
-            listWords.Add("NtUserInvalidateRgn");
-            listWords.Add("NtUserInvalidateRect");
-            listWords.Add("IsWindowVisible");
-            listWords.Add("PeekMessageA");
-            listWords.Add("PeekMessageW");
-            listWords.Add("SetForegroundWindow");
-            listWords.Add("SetMenu");
-            listWords.Add("SetMenuItemInfoA");
-            listWords.Add("SetMenuItemInfoW");
-            listWords.Add("NtUserSetParent");
-            listWords.Add("SetWindowLongA");
-            listWords.Add("SetWindowLongPtrA");
-            listWords.Add("SetWindowLongPtrW");
-            listWords.Add("SetWindowLongW");
-            listWords.Add("NtUserSetWindowPlacement");
-            listWords.Add("NtUserSetWindowPos");
-            listWords.Add("NtUserTrackPopupMenuEx");
-            listWords.Add("NtUserSetWindowPos");
-            listWords.Add("NtUserWindowFromPoint");
-            listWords.Add(" LdrpLoadDll(Ldrp");
-            listWords.Add("NtMapViewOfSection@40");
-            listWords.Add("LoadLibraryExW");
-            listWords.Add("FreeLibrary@4");
-            listWords.Add("SetConsoleActiveScreenBuffer");
-            listWords.Add("CreateProcessInternalW");
-            listWords.Add("BitBlt");
-            listWords.Add("CreateCompatibleDC");
-            listWords.Add("CreateDCA");
-            listWords.Add("CreateDCW");
-            listWords.Add("CreateFontIndirectW");
-            listWords.Add("CreateFontW");
-            listWords.Add("DeleteDC");
-            listWords.Add("ExtTextOutA");
-            listWords.Add("FillRgn");
-            listWords.Add("GetClipBox");
-            listWords.Add("PaintRgn");
-            listWords.Add("PolyTextOutA");
-            listWords.Add("PolyTextOutW");
-            listWords.Add("TextOutA");
-            listWords.Add("TextOutW");
-            string[] arrayWords = (string[])listWords.ToArray(typeof(string));
-            IStringSearchAlgorithm searchAlg = new StringSearch();
-            searchAlg.Keywords = arrayWords;
-            StringSearchResult[] results = searchAlg.FindAll(outputdata.ToString());
-            string input = outputdata.ToString();
+            string input = rawdata.ToString();
+            string[] lines = input.Split(new Char[] { '\n' });
 
-			string[] lines = input.Split(new Char[] { '\n' });
-
-			foreach(string line in lines)
-			{
-				if(line.IndexOf("PublicSymbol:") == -1)
-					continue;
-				// PublicSymbol: [01234567][0123:01234567] DecoratedName(UndecoratedName)
-				int decoratedNameEnd = line.IndexOf('(');
-				if(decoratedNameEnd == -1)
-					decoratedNameEnd = line.Length;
-				decoratedNameEnd--;
-				int decoratedNameStart = line.IndexOf("] ") + 2;
-				int decoratedNameLength = decoratedNameEnd - decoratedNameStart + 1;
-				string decoratedSymbolName = line.Substring(decoratedNameStart, decoratedNameLength);
-
-				int rvaStart = line.IndexOf('[') + 1;
-				string rvaString = line.Substring(rvaStart, 8);
-				int rva = Convert.ToInt32(rvaString, 16);
-				
-			}
-
-            foreach (StringSearchResult r in results)
+            foreach (string line in lines)
             {
-                string temp = input.Substring(r.Index-66, 100);
-                int end2 = temp.IndexOf('\n');
-                string lineend = @"\n\n\n";
-                textBox3.AppendText(r.Keyword + "   " + r.Index.ToString() + "   " + end2.ToString() + temp + lineend); 
+                if (line.IndexOf("PublicSymbol:") == -1)
+                    continue;
+                // PublicSymbol: [01234567][0123:01234567] DecoratedName(UndecoratedName)
+                int decoratedNameEnd = line.IndexOf('(');
+                if (decoratedNameEnd == -1)
+                    decoratedNameEnd = line.Length;
+                decoratedNameEnd--;
+                int decoratedNameStart = line.IndexOf("] ") + 2;
+                int decoratedNameLength = decoratedNameEnd - decoratedNameStart + 1;
+                string decoratedSymbolName = line.Substring(decoratedNameStart, decoratedNameLength);
+
+                int rvaStart = line.IndexOf('[') + 1;
+                string rvaString = line.Substring(rvaStart, 8);
+                int rva = Convert.ToInt32(rvaString, 16);
+                string linetoadd = decoratedSymbolName + "  RVA:" + rvaString;
+                outputdata.AppendLine(linetoadd);
+
             }
+
         }
         
         public string readpdbsignature(string filename)
@@ -201,13 +104,182 @@ namespace CommandPrompt
             commandPrompt.ErrorDataReceived += commandPrompt_DataReceived;
             commandPrompt.Run();
             string output = commandPrompt.StandardOutput.ReadToEnd();
-            int start = output.IndexOf("PdbSig70:") + 11;
+            int start = output.IndexOf("PdbSig70") + 11;
             int end = output.IndexOf("PdbAge");
             int length = end - start;
             string pdbsignature = output.Substring(start, length);
             return pdbsignature;
 
         }
+        public string matchDLL(string pdbsig)
+        {
+            DirectoryInfo di = new DirectoryInfo(textBox1.Text);
+            System.IO.DirectoryInfo root = di;
+            string version=null;
+            string[] allFiles = System.IO.Directory.GetFiles(root.FullName, "*.dll", System.IO.SearchOption.AllDirectories);
+            foreach (string filename in allFiles)
+            {
+                // operation for each DLL file
+                string dllsig = readpdbsignature(filename);
+                if (pdbsig == dllsig)
+                {
+                    FileVersionInfo myFileVersionInfo = FileVersionInfo.GetVersionInfo(filename);
+                    version = myFileVersionInfo.ToString();
+                    version = DLLWinversion(version);
+                    outputdata.AppendLine(filename + "   " + version);
+                    
+                    
+                }
+             }
+            return version;
+        
+        }
+        public string DLLWinversion(string input)
+        {
+            // need logic to differentiate between server and client versions 
+            // need logic for bitness
+            int start = input.IndexOf("ProductVersion:");
+            int end = input.IndexOf("Debug:");
+            string sub = input.Substring(start, end-start);
+            int delimeter = sub.IndexOf('.');
+            string majorversion = sub.Substring(delimeter-1, 1);
+            string minorversion = sub.Substring(delimeter + 1, 1);
+            string buildnumber = sub.Substring(delimeter + 3, 4);
+            string revision = sub.Substring(delimeter + 8, 5);
+            StringBuilder versionname = new StringBuilder(); 
+            versionname.Append(sub);
+            if (majorversion == "6")
+            {
+                if (minorversion == "3")
+                    versionname.Append("Windows 8.1 ");
+                if(minorversion == "2")
+                    versionname.Append("Windows 8 ");
+                if (minorversion == "1")
+                    versionname.Append("Windows 7 ");
+                if (minorversion == "0")
+                    versionname.Append("Windows Vista ");
+            }
+            if (majorversion == "5")
+            {
+                if (minorversion == "2")
+                    versionname.Append("Windows XP x64 ");
+                if (minorversion == "1")
+                    versionname.Append("Windows XP ");
+                if (minorversion == "1")
+                    versionname.Append("Windows 7 ");
+            }
+            // first digit of revision identifies service pack
+            if (revision[0] == '2')
+                versionname.Append("Service Pack 2 ");
+            if (revision[0] == '1')
+                versionname.Append("Service Pack 1 ");
+            if (revision[0] == '3')
+                versionname.Append("Service Pack 3 ");
+            return versionname.ToString();
+          
+        }
+        /* 
+
+         {File:             D:\DLLs\kernel32.dll
+ InternalName:     kernel32
+ OriginalFilename: kernel32
+ FileVersion:      6.1.7601.17932 (win7sp1_gdr.120820-0419)
+ FileDescription:  Windows NT BASE API Client DLL
+ Product:          Microsoft® Windows® Operating System
+ ProductVersion:   6.1.7601.17932
+ Debug:            False
+ Patched:          False
+ PreRelease:       False
+ PrivateBuild:     False
+ SpecialBuild:     False
+ Language:         English (United States)
+ }
+
+        
+        
+         public void filterfunction()
+         {
+             ArrayList listWords = new ArrayList();
+             listWords.Add("AppendMenuA");
+             listWords.Add("AppendMenuW");
+             listWords.Add("NtUserBeginPaint");
+             listWords.Add("CheckMenuItem");
+             listWords.Add("CheckMenuRadioItem");
+             listWords.Add("DrawTextA");
+             listWords.Add("DrawTextExA");
+             listWords.Add("DrawTextExW");
+             listWords.Add("EnableMenuItem");
+             listWords.Add("FillRect");
+             listWords.Add("EnableMenuItem");
+             listWords.Add("NtUserGetAncestor");
+             listWords.Add("NtUserGetCursorInfo");
+             listWords.Add("GetCursorPos");
+             listWords.Add("NtUserGetDC");
+             listWords.Add("NtUserGetDCEx");
+             listWords.Add("NtUserGetForegroundWindow");
+             listWords.Add("GetKeyState");
+             listWords.Add("GetMessageA");
+             listWords.Add("GetMessagePos");
+             listWords.Add("GetMessageTime");
+             listWords.Add("GetMessageW");
+             listWords.Add("GetUpdateRect");
+             listWords.Add("GetUpdateRgn");
+             listWords.Add("NtUserGetWindowDC");
+             listWords.Add("GetWindowLongA");
+             listWords.Add("GetWindowLongPtrA");
+             listWords.Add("GetWindowLongPtrW");
+             listWords.Add("GetWindowLongW");
+             listWords.Add("GetWindowRect");
+             listWords.Add("InsertMenuItemA");
+             listWords.Add("InsertMenuItemW");
+             listWords.Add("NtUserInvalidateRgn");
+             listWords.Add("NtUserInvalidateRect");
+             listWords.Add("IsWindowVisible");
+             listWords.Add("PeekMessageA");
+             listWords.Add("PeekMessageW");
+             listWords.Add("SetForegroundWindow");
+             listWords.Add("SetMenu");
+             listWords.Add("SetMenuItemInfoA");
+             listWords.Add("SetMenuItemInfoW");
+             listWords.Add("NtUserSetParent");
+             listWords.Add("SetWindowLongA");
+             listWords.Add("SetWindowLongPtrA");
+             listWords.Add("SetWindowLongPtrW");
+             listWords.Add("SetWindowLongW");
+             listWords.Add("NtUserSetWindowPlacement");
+             listWords.Add("NtUserSetWindowPos");
+             listWords.Add("NtUserTrackPopupMenuEx");
+             listWords.Add("NtUserSetWindowPos");
+             listWords.Add("NtUserWindowFromPoint");
+             listWords.Add(" LdrpLoadDll(Ldrp");
+             listWords.Add("NtMapViewOfSection@40");
+             listWords.Add("LoadLibraryExW");
+             listWords.Add("FreeLibrary@4");
+             listWords.Add("SetConsoleActiveScreenBuffer");
+             listWords.Add("CreateProcessInternalW");
+             listWords.Add("BitBlt");
+             listWords.Add("CreateCompatibleDC");
+             listWords.Add("CreateDCA");
+             listWords.Add("CreateDCW");
+             listWords.Add("CreateFontIndirectW");
+             listWords.Add("CreateFontW");
+             listWords.Add("DeleteDC");
+             listWords.Add("ExtTextOutA");
+             listWords.Add("FillRgn");
+             listWords.Add("GetClipBox");
+             listWords.Add("PaintRgn");
+             listWords.Add("PolyTextOutA");
+             listWords.Add("PolyTextOutW");
+             listWords.Add("TextOutA");
+             listWords.Add("TextOutW");
+             string[] arrayWords = (string[])listWords.ToArray(typeof(string));
+             IStringSearchAlgorithm searchAlg = new StringSearch();
+             searchAlg.Keywords = arrayWords;
+             StringSearchResult[] results = searchAlg.FindAll(rawdata.ToString());
+             string input = rawdata.ToString();
+
+         }
+         */
         private void buttonClose_Click(object sender, EventArgs e)
         {
             Close();
